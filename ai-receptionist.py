@@ -5,12 +5,18 @@ from dotenv import load_dotenv
 from elevenlabs import generate, stream
 from openai import OpenAI
 
+load_dotenv()
+
+aai_api_key = os.getenv("AAI_API_KEY")
+elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
 
 class AI_Assistant:
     def __init__(self):
-        aai.settings.api_key = os.getenv(AAI_API_KEY)
-        self.elevenlabs_api_key = os.getenv(ELEVENLABS_API_KEY)
-        self.openai_client = OpenAI(api_key=os.getenv(OPENAI_API_KEY))
+        aai.settings.api_key = aai_api_key
+        self.elevenlabs_api_key = elevenlabs_api_key
+        self.openai_client = OpenAI(api_key=openai_api_key)
 
         self.transcriber = None
 
@@ -55,16 +61,19 @@ class AI_Assistant:
         if not transcript.text:
             return
 
+        print("DEBUG - Transcript received:", transcript.text)
+
         if isinstance(transcript, aai.RealtimeFinalTranscript):
             # print(transcript.text, end="\r\n")
             # send to a new method
+            print("DEBUG - Final Transcript:", transcript.text)
             self.generate_ai_response(transcript)
 
         else:
             print(transcript.text, end="\r")
 
     def on_error(self, error: aai.RealtimeError):
-        # print("An error occured:", error)
+        print("An error occured:", error)
         return
 
     def on_close(self):
@@ -84,3 +93,20 @@ class AI_Assistant:
         ai_response = response.choices[0].message.content
         self.generate_audio(ai_response)
         self.start_transcription()
+
+    # generate audio from elevenlabs
+    def generate_audio(self, text):
+        self.full_transcript.append({"role": "system", "content": text})
+        print(f"\nAI Receptionist: {text}", end="\r\n")
+
+        audio_stream = generate(
+            text, self.elevenlabs_api_key, voice="Rachel", stream=True
+        )
+
+        stream(audio_stream)
+
+
+greeting = "Welcome to the dental clinic. How can I help you today?"
+ai_assistant = AI_Assistant()
+ai_assistant.generate_audio(greeting)
+ai_assistant.start_transcription()
