@@ -70,3 +70,17 @@ class AI_Assistant:
     def on_close(self):
         # print("Closing Session")
         return
+
+    def generate_ai_response(self, transcript):
+        # pause realtime transcription when communicating with openai api
+        self.stop_transcription()
+        self.full_transcript.append({"role": "user", "content": transcript.text})
+        print(f"\nPatient:, {transcript.text}", end="\r\n")
+
+        response = self.openai_client.chat.completions.create(
+            model="gpt-3.5-turbo", messages=self.full_transcript
+        )
+
+        ai_response = response.choices[0].message.content
+        self.generate_audio(ai_response)
+        self.start_transcription()
